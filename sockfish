@@ -1,0 +1,155 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Chess::Rep;
+
+my $game = Chess::Rep->new;
+my $bestmove;
+my @undolist; # fen
+
+my $state = 'inactive';
+
+my $rank = 0;
+my $file = 0;
+my $from;
+my $move;
+
+while (1) {
+    my $ch = input();
+
+    if ($state eq 'inactive') {
+        if ($ch eq 'L2' || $ch eq 'L3') {
+            goodinput();
+            newgame();
+            outputmove(bestmove());
+            $rank = 0;
+            $file = 0;
+            $state = 'getfrom';
+        }
+    } elsif ($state eq 'getfrom') {
+        $file++ if $ch eq '2';
+        $rank++ if $ch eq '3';
+        if ($ch eq '4') {
+            if ($file == 0 && $rank == 0) {
+                $move = bestmove();
+                $state = 'getconfirmation';
+                goodinput();
+                outputmove($move);
+            } elsif ($file >= 1 && $file <= 8 && $rank >= 1 && $rank <= 8) {
+                $from = chr($file + ord('a') - 1) . $rank;
+                $rank = 0;
+                $file = 0;
+                $state = 'getto';
+                goodinput();
+            } else {
+                $rank = 0;
+                $file = 0;
+                badinput();
+                outputmove(bestmove());
+            }
+        }
+        if ($ch eq '1') {
+            badinput();
+            outputmove(bestmove());
+            $file = 0;
+            $rank = 0;
+        }
+    } elsif ($state eq 'getto') {
+        $file++ if $ch eq '2';
+        $rank++ if $ch eq '3';
+        if ($ch eq '4') {
+            if ($file >= 1 && $file <= 8 && $rank >= 1 && $rank <= 8) {
+                $move = $from . chr($file + ord('a') - 1) . $rank;
+                $rank = 0;
+                $file = 0;
+                $state = 'getconfirmation';
+                goodinput();
+                outputmove($move);
+            } else {
+                $rank = 0;
+                $file = 0;
+                badinput();
+                outputmove(bestmove());
+                $state = 'getfrom';
+            }
+        }
+        if ($ch eq '1') {
+            $rank = 0;
+            $file = 0;
+            badinput();
+            outputmove(bestmove());
+            $state = 'getfrom';
+        }
+    } elsif ($state eq 'getconfirmation') {
+        if ($ch eq '4') {
+            playmove($move);
+            $rank = 0;
+            $file = 0;
+            $state = 'getfrom';
+            goodinput();
+            outputmove(bestmove());
+        }
+        if ($ch eq '1') {
+            $rank = 0;
+            $file = 0;
+            badinput();
+            outputmove(bestmove());
+            $state = 'getfrom';
+        }
+    }
+}
+
+sub input {
+    my $long = 0;
+    my $ch;
+    do {
+        $ch = getc();
+        $long = 1 if $ch eq 'L';
+    } while ($ch !~ /[1-4]/);
+    return $long ? "L$ch" : $ch;
+}
+
+sub outputmove {
+    my ($move) = @_;
+    print "$move\n";
+}
+
+sub badinput {
+    print "VVVVV\n";
+}
+
+sub goodinput {
+    print "v\n";
+}
+
+sub newgame {
+    $game = Chess::Rep->new;
+    $bestmove = compute_bestmove();
+    @undolist = ();
+}
+
+sub undo {
+    $game = Chess::Rep->new(pop @undolist) if @undolist;
+}
+
+sub bestmove {
+    return $bestmove;
+}
+
+sub compute_bestmove {
+    my $fen = $game->get_fen;
+    my $move = `./solve $fen`;
+    chomp $move;
+    return $move;
+}
+
+sub playmove {
+    my ($move) = @_;
+
+    push @undolist, $game->get_fen;
+
+    $game->go_move($move);
+    $bestmove = compute_bestmove();
+}
