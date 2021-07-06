@@ -16,11 +16,21 @@ my $file = 0;
 my $from;
 my $move;
 
+my %keymap = (
+    14 => 1,
+    15 => 2,
+    16 => 3,
+    17 => 4,
+);
+
+# TODO: require multiple presses to activate in a short time
+# TODO: some way to deactivate by multiple presses of 1 in a short time
+
 while (1) {
     my $ch = input();
 
     if ($state eq 'inactive') {
-        if ($ch eq 'L2' || $ch eq 'L3') {
+        if ($ch eq '2') {
             goodinput();
             newgame();
             outputmove(bestmove());
@@ -102,13 +112,9 @@ while (1) {
 }
 
 sub input {
-    my $long = 0;
-    my $ch;
-    do {
-        $ch = getc();
-        $long = 1 if $ch eq 'L';
-    } while ($ch !~ /[1-4]/);
-    return $long ? "L$ch" : $ch;
+    my $l = <>;
+    chomp $l;
+    return $keymap{$l}||$l;
 }
 
 sub outputmove {
