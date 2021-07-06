@@ -17,6 +17,8 @@ my $file = 0;
 my $from;
 my $move;
 
+my $turn = 1;
+
 my %keymap = (
     14 => 1,
     15 => 2,
@@ -29,6 +31,11 @@ $| = 1;
 # TODO: require multiple presses to activate in a short time
 # TODO: some way to deactivate by multiple presses of 1 in a short time
 # TODO: repeat "output_move" if no input within a few seconds?
+# TODO: reject illegal moves
+# TODO: move all this to python so that it is more in sync with the IO?
+# TODO: a way to go through the undo list
+# TODO: a way to swap sides
+# TODO: a way to query the current state?
 
 while (1) {
     my $ch = input();
@@ -37,7 +44,7 @@ while (1) {
         if ($ch eq '2') {
             goodinput();
             newgame();
-            outputmove(bestmove());
+            outputmove(bestmove()) if $turn;
             $rank = 0;
             $file = 0;
             $state = 'getfrom';
@@ -46,11 +53,12 @@ while (1) {
         $file++ if $ch eq '2';
         $rank++ if $ch eq '3';
         if ($ch eq '4') {
-            if ($file == 0 && $rank == 0) {
-                $move = bestmove();
-                $state = 'getconfirmation';
+            if ($file == 0 && $rank == 0 && $turn) {
                 goodinput();
-                outputmove($move);
+                playmove(bestmove());
+                $rank = 0;
+                $file = 0;
+                $state = 'getfrom';
             } elsif ($file >= 1 && $file <= 8 && $rank >= 1 && $rank <= 8) {
                 $from = chr($file + ord('a') - 1) . $rank;
                 $rank = 0;
@@ -66,7 +74,7 @@ while (1) {
         }
         if ($ch eq '1') {
             badinput();
-            outputmove(bestmove());
+            outputmove(bestmove()) if $turn;
             $file = 0;
             $rank = 0;
         }
@@ -76,16 +84,18 @@ while (1) {
         if ($ch eq '4') {
             if ($file >= 1 && $file <= 8 && $rank >= 1 && $rank <= 8) {
                 $move = $from . chr($file + ord('a') - 1) . $rank;
+                # TODO: check if move is legal, badinput() and reset it if not!
+                goodinput();
+                playmove($move);
                 $rank = 0;
                 $file = 0;
-                $state = 'getconfirmation';
-                goodinput();
-                outputmove($move);
+                $state = 'getfrom';
+                outputmove(bestmove()) if $turn;
             } else {
                 $rank = 0;
                 $file = 0;
                 badinput();
-                outputmove(bestmove());
+                outputmove(bestmove()) if $turn;
                 $state = 'getfrom';
             }
         }
@@ -93,23 +103,7 @@ while (1) {
             $rank = 0;
             $file = 0;
             badinput();
-            outputmove(bestmove());
-            $state = 'getfrom';
-        }
-    } elsif ($state eq 'getconfirmation') {
-        if ($ch eq '4') {
-            playmove($move);
-            $rank = 0;
-            $file = 0;
-            $state = 'getfrom';
-            goodinput();
-            outputmove(bestmove());
-        }
-        if ($ch eq '1') {
-            $rank = 0;
-            $file = 0;
-            badinput();
-            outputmove(bestmove());
+            outputmove(bestmove()) if $turn;
             $state = 'getfrom';
         }
     }
@@ -127,12 +121,19 @@ sub outputmove {
     $fromfile = ord($fromfile) - ord('a') + 1;
     $tofile = ord($tofile) - ord('a') + 1;
 
-    lvibrate(200,200) for (1 .. $fromfile);
-    rvibrate(200,200) for (1 .. $fromrank);
-    lvibrate(200,200) for (1 .. $tofile);
-    rvibrate(200,200) for (1 .. $torank);
+    usleep(500_000);
 
-    print 'l'x$fromfile . 'r'x$fromrank . ' v ' . 'l'x$tofile . 'r'x$torank . "\n";
+    lvibrate(200,200) for (1 .. $fromfile);
+    usleep(200_000);
+    rvibrate(200,200) for (1 .. $fromrank);
+
+    return if input() eq '1';
+
+    usleep(500_000);
+
+    lvibrate(200,200) for (1 .. $tofile);
+    usleep(200_000);
+    rvibrate(200,200) for (1 .. $torank);
 }
 
 sub badinput {
@@ -173,7 +174,7 @@ sub vibrate {
 
 sub newgame {
     $game = Chess::Rep->new;
-    $bestmove = compute_bestmove();
+    $bestmove = undef;
     @undolist = ();
 }
 
@@ -182,6 +183,7 @@ sub undo {
 }
 
 sub bestmove {
+    $bestmove = compute_bestmove() if !$bestmove;
     return $bestmove;
 }
 
@@ -195,8 +197,11 @@ sub compute_bestmove {
 sub playmove {
     my ($move) = @_;
 
+    print STDERR "PLAY MOVE: $move\n";
+
     push @undolist, $game->get_fen;
 
     $game->go_move($move);
-    $bestmove = compute_bestmove();
+    $turn = !$turn;
+    $bestmove = undef;
 }
