@@ -113,7 +113,11 @@ sub input {
 
 sub outputmove {
     my ($move) = @_;
-    print "$move\n";
+    my ($fromfile, $fromrank, $tofile, $torank) = split //, $move;
+    $fromfile = ord($fromfile) - ord('a') + 1;
+    $tofile = ord($tofile) - ord('a') + 1;
+
+    print 'l'x$fromfile . 'r'x$fromrank . ' v ' . 'l'x$tofile . 'r'x$torank . "\n";
 }
 
 sub badinput {
