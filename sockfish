@@ -5,6 +5,8 @@ use warnings;
 
 use Time::HiRes qw(usleep);
 use Chess::Rep;
+use Try::Tiny;
+use IO::Select;
 
 my $game = Chess::Rep->new;
 my $bestmove;
@@ -31,8 +33,7 @@ $| = 1;
 # TODO: require multiple presses to activate in a short time
 # TODO: some way to deactivate by multiple presses of 1 in a short time
 # TODO: repeat "output_move" if no input within a few seconds?
-# TODO: reject illegal moves
-# TODO: move all this to python so that it is more in sync with the IO?
+# TODO: move all this to python so that it is more in sync with the IO? Or at least flush all inputs in input() before waiting to accept any
 # TODO: a way to go through the undo list
 # TODO: a way to swap sides
 # TODO: a way to query the current state?
@@ -54,8 +55,8 @@ while (1) {
         $rank++ if $ch eq '3';
         if ($ch eq '4') {
             if ($file == 0 && $rank == 0 && $turn) {
-                goodinput();
                 playmove(bestmove());
+                goodinput();
                 $rank = 0;
                 $file = 0;
                 $state = 'getfrom';
@@ -84,9 +85,12 @@ while (1) {
         if ($ch eq '4') {
             if ($file >= 1 && $file <= 8 && $rank >= 1 && $rank <= 8) {
                 $move = $from . chr($file + ord('a') - 1) . $rank;
-                # TODO: check if move is legal, badinput() and reset it if not!
-                goodinput();
-                playmove($move);
+                try {
+                    playmove($move);
+                    goodinput();
+                } catch {
+                    badinput();
+                };
                 $rank = 0;
                 $file = 0;
                 $state = 'getfrom';
@@ -110,8 +114,14 @@ while (1) {
 }
 
 sub input {
+    # discard any pending input
+    my $s = IO::Select->new;
+    $s->add(\*STDIN);
+    <> while $s->can_read(0.01);
+
     my $l = <>;
     chomp $l;
+    vibrate(50,50);
     return $keymap{$l}||$l;
 }
 
@@ -142,7 +152,7 @@ sub badinput {
 }
 
 sub goodinput {
-    vibrate(100, 100);
+    vibrate(200, 200);
 }
 
 # times in ms
@@ -197,11 +207,13 @@ sub compute_bestmove {
 sub playmove {
     my ($move) = @_;
 
-    print STDERR "PLAY MOVE: $move\n";
+    my $fen= $game->get_fen;
+
+    $game->go_move($move); # dies if move is illegal
 
     push @undolist, $game->get_fen;
-
-    $game->go_move($move);
     $turn = !$turn;
     $bestmove = undef;
+
+    print STDERR "PLAY MOVE: $move\n";
 }
