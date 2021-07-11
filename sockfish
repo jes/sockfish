@@ -3,10 +3,13 @@
 use strict;
 use warnings;
 
+use lib 'lib';
+
 use Time::HiRes qw(usleep);
 use Chess::Rep;
 use Try::Tiny;
 use IO::Select;
+use Sockfish::Stockfish;
 
 my $game = Chess::Rep->new;
 my $bestmove;
@@ -28,6 +31,8 @@ my %keymap = (
     17 => 4,
 );
 
+my $engine = Sockfish::Stockfish->new;
+
 $| = 1;
 
 # TODO: require multiple presses to activate in a short time
@@ -37,6 +42,7 @@ $| = 1;
 # TODO: a way to go through the undo list
 # TODO: a way to swap sides
 # TODO: a way to query the current state?
+# TODO: support promotion to non-queen
 
 while (1) {
     my $ch = input();
@@ -84,7 +90,10 @@ while (1) {
         $rank++ if $ch eq '3';
         if ($ch eq '4') {
             if ($file >= 1 && $file <= 8 && $rank >= 1 && $rank <= 8) {
-                $move = $from . chr($file + ord('a') - 1) . $rank;
+                my $to = chr($file + ord('a') - 1) . $rank;
+                $move = "$from$to";
+
+                $move .= 'q' if promotion($move);
                 try {
                     playmove($move);
                     goodinput();
@@ -113,11 +122,30 @@ while (1) {
     }
 }
 
-sub input {
-    # discard any pending input
+# discard any pending input
+sub discard_input {
     my $s = IO::Select->new;
     $s->add(\*STDIN);
     <> while $s->can_read(0.01);
+}
+
+sub wait_input {
+    my ($timeout) = @_;
+
+    my $s = IO::Select->new;
+    $s->add(\*STDIN);
+    if ($s->can_read($timeout)) {
+        my $l = <>;
+        chomp $l;
+        vibrate(50,50);
+        return $keymap{$l}||$l;
+    } else {
+        return undef;
+    }
+}
+
+sub input {
+    discard_input();
 
     my $l = <>;
     chomp $l;
@@ -133,17 +161,32 @@ sub outputmove {
 
     usleep(500_000);
 
-    lvibrate(200,200) for (1 .. $fromfile);
+    discard_input();
+
+    my $loop = 1;
+    do {
+        lvibrate(100,200) for (1 .. $fromfile);
+        usleep(200_000);
+        rvibrate(100,200) for (1 .. $fromrank);
+
+        my $input = wait_input(0.5);
+        return if defined $input && $input eq '1';
+        $loop = 0 if defined $input;
+    } while($loop);
+
     usleep(200_000);
-    rvibrate(200,200) for (1 .. $fromrank);
 
-    return if input() eq '1';
+    discard_input();
 
-    usleep(500_000);
+    $loop = 1;
+    do {
+        lvibrate(100,200) for (1 .. $tofile);
+        usleep(200_000);
+        rvibrate(100,200) for (1 .. $torank);
 
-    lvibrate(200,200) for (1 .. $tofile);
-    usleep(200_000);
-    rvibrate(200,200) for (1 .. $torank);
+        my $input = wait_input(0.5);
+        return if defined $input;
+    } while($loop);
 }
 
 sub badinput {
@@ -199,15 +242,13 @@ sub bestmove {
 
 sub compute_bestmove {
     my $fen = $game->get_fen;
-    my $move = `./solve $fen`;
-    chomp $move;
-    return $move;
+    return $engine->solve($fen);
 }
 
 sub playmove {
     my ($move) = @_;
 
-    my $fen= $game->get_fen;
+    my $fen = $game->get_fen;
 
     $game->go_move($move); # dies if move is illegal
 
@@ -216,4 +257,15 @@ sub playmove {
     $bestmove = undef;
 
     print STDERR "PLAY MOVE: $move\n";
+}
+
+sub promotion {
+    my ($move) = @_;
+
+    $move =~ /(..)(..)/;
+    my $from = $1;
+    my $to = $2;
+
+    # moving a pawn to the 1st or 8th rank is a promotion
+    return ($game->get_piece_at($from) & 0x1) && ($to =~ /[18]/);
 }

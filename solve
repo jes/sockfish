@@ -3,19 +3,10 @@
 use strict;
 use warnings;
 
-use IPC::Run qw(start pump finish);
+use lib 'lib';
+use Sockfish::Stockfish;
 
 my $fen = join(' ', @ARGV);
 
-my @stockfish = ('stockfish');
-my $in;
-my $out;
-
-my $h = start \@stockfish, \$in, \$out;
-$in = "position fen $fen\ngo nodes 100000\n";
-pump $h while length $in;
-
-pump $h until $out =~ /bestmove ([a-h][1-8][a-h][1-8][qrbn]?)/;
-finish $h;
-
-print "$1\n";
+my $engine = Sockfish::Stockfish->new;
+print $engine->solve($fen), "\n";
