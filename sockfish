@@ -131,12 +131,18 @@ sub discard_input {
     <> while $s->can_read(0.01);
 }
 
-sub wait_input {
+sub input_ready {
     my ($timeout) = @_;
 
     my $s = IO::Select->new;
     $s->add(\*STDIN);
-    if ($s->can_read($timeout)) {
+    return $s->can_read($timeout);
+}
+
+sub wait_input {
+    my ($timeout) = @_;
+
+    if (input_ready($timeout)) {
         my $l = <>;
         chomp $l;
         vibrate(50,50);
@@ -165,16 +171,33 @@ sub outputmove {
 
     discard_input();
 
-    my $loop = 1;
-    do {
-        lvibrate(100,200) for (1 .. $fromfile);
-        usleep(200_000);
-        rvibrate(100,200) for (1 .. $fromrank);
+    # TODO: refactor this into something sensible
 
-        my $input = wait_input(0.5);
-        return if defined $input && $input eq '1';
+    my $loop = 1;
+    my $input;
+    do {
+        for (1 .. $fromfile) {
+            if (input_ready(0)) {
+                $input = wait_input(0);
+                goto DONEFROM;
+            }
+            lvibrate(100,200);
+        }
+        usleep(200_000);
+        for (1 .. $fromrank) {
+            if (input_ready(0)) {
+                $input = wait_input(0);
+                goto DONEFROM;
+            }
+            rvibrate(100,200);
+        }
+        usleep(200_000);
+
+        $input = wait_input(0.5);
         $loop = 0 if defined $input;
     } while($loop);
+    DONEFROM:
+    return if $input eq '1';
 
     usleep(200_000);
 
@@ -182,12 +205,25 @@ sub outputmove {
 
     $loop = 1;
     do {
-        lvibrate(100,200) for (1 .. $tofile);
+        for (1 .. $tofile) {
+            if (input_ready(0)) {
+                $input = wait_input(0);
+                return;
+            }
+            lvibrate(100,200);
+        }
         usleep(200_000);
-        rvibrate(100,200) for (1 .. $torank);
+        for (1 .. $torank) {
+            if (input_ready(0)) {
+                $input = wait_input(0);
+                return;
+            }
+            rvibrate(100,200);
+        }
+        usleep(200_000);
 
-        my $input = wait_input(0.5);
-        return if defined $input;
+        $input = wait_input(0.5);
+        $loop = 0 if defined $input;
     } while($loop);
 }
 
