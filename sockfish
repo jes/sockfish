@@ -75,7 +75,7 @@ while (1) {
                 $rank = 0;
                 $file = 0;
                 badinput();
-                outputmove(bestmove());
+                outputmove(bestmove()) if $turn;
             }
         }
         if ($ch eq '1') {
@@ -88,6 +88,9 @@ while (1) {
         $file++ if $ch eq '2';
         $rank++ if $ch eq '3';
         if ($ch eq '4') {
+            my ($fromfile, $fromrank) = split //, $from;
+            $file = ord($fromfile)-ord('a')+1 if $file == 0 && $rank != 0;
+            $rank = $fromrank if $rank == 0 && $file != 0;
             if ($file >= 1 && $file <= 8 && $rank >= 1 && $rank <= 8) {
                 my $to = chr($file + ord('a') - 1) . $rank;
                 $move = "$from$to";
@@ -231,8 +234,11 @@ sub newgame {
 }
 
 sub undo {
-    print STDERR "UNDO\n";
-    $game = Chess::Rep->new(pop @undolist) if @undolist;
+    if (@undolist) {
+        print STDERR "UNDO\n";
+        $game = Chess::Rep->new(pop @undolist);
+        $turn = !$turn;
+    }
 }
 
 sub bestmove {
