@@ -37,7 +37,6 @@ $| = 1;
 
 # TODO: require multiple presses to activate in a short time
 # TODO: some way to deactivate by multiple presses of 1 in a short time
-# TODO: repeat "output_move" if no input within a few seconds?
 # TODO: move all this to python so that it is more in sync with the IO? Or at least flush all inputs in input() before waiting to accept any
 # TODO: a way to go through the undo list
 # TODO: a way to swap sides
@@ -232,6 +231,7 @@ sub newgame {
 }
 
 sub undo {
+    print STDERR "UNDO\n";
     $game = Chess::Rep->new(pop @undolist) if @undolist;
 }
 
