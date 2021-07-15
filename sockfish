@@ -67,6 +67,7 @@ while (1) {
                 tostate('getto');
             } elsif ($file == 9 && $rank == 9) {
                 $turn = !$turn;
+                goodinput();
                 tostate('getfrom');
             } else {
                 badinput();
@@ -138,7 +139,6 @@ sub wait_input {
     if (input_ready($timeout)) {
         my $l = <>;
         chomp $l;
-        vibrate(50,50);
         return $keymap{$l}||$l;
     } else {
         return undef;
@@ -150,7 +150,7 @@ sub input {
 
     my $l = <>;
     chomp $l;
-    vibrate(50,50);
+    vibrate(150,50);
     return $keymap{$l}||$l;
 }
 
@@ -181,12 +181,12 @@ sub outputsquare {
     while(1) {
         for (1 .. $file) {
             return wait_input(0) if input_ready(0);
-            lvibrate(100,200);
+            lvibrate(150,150);
         }
         usleep(200_000);
         for (1 .. $rank) {
             return wait_input(0) if input_ready(0);
-            rvibrate(100,200);
+            rvibrate(150,150);
         }
         usleep(200_000);
 
