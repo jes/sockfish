@@ -65,7 +65,7 @@ while (1) {
                 $from = chr($file + ord('a') - 1) . $rank;
                 goodinput();
                 tostate('getto');
-            } elsif ($file == 9 && $rank == 9) {
+            } elsif ($file == 9 && $rank == 9) { # I9 == swap turn
                 $turn = !$turn;
                 goodinput();
                 tostate('getfrom');
