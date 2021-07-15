@@ -35,11 +35,8 @@ my $engine = Sockfish::Stockfish->new;
 
 $| = 1;
 
-# TODO: require multiple presses to activate in a short time
-# TODO: some way to deactivate by multiple presses of 1 in a short time
+# TODO: separate toggle switch to activate the system
 # TODO: move all this to python so that it is more in sync with the IO? Or at least flush all inputs in input() before waiting to accept any
-# TODO: a way to go through the undo list
-# TODO: a way to swap sides
 # TODO: a way to query the current state?
 # TODO: support promotion to non-queen
 
