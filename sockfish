@@ -50,43 +50,39 @@ while (1) {
         if ($ch eq '2') {
             goodinput();
             newgame();
-            outputmove(bestmove()) if $turn;
-            $rank = 0;
-            $file = 0;
-            $state = 'getfrom';
+            tostate('getfrom');
         }
     } elsif ($state eq 'getfrom') {
         $file++ if $ch eq '2';
         $rank++ if $ch eq '3';
+        if ($ch eq '1') {
+            if ($file == 0) $file = 5; # 'e'
+            elsif ($rank == 0) $rank = 5; # '5'
+        }
         if ($ch eq '4') {
             if ($file == 0 && $rank == 0 && $turn) {
                 playmove(bestmove());
                 goodinput();
-                $rank = 0;
-                $file = 0;
-                $state = 'getfrom';
+                tostate('getfrom');
             } elsif ($file >= 1 && $file <= 8 && $rank >= 1 && $rank <= 8) {
                 $from = chr($file + ord('a') - 1) . $rank;
-                $rank = 0;
-                $file = 0;
-                $state = 'getto';
                 goodinput();
+                tostate('getto');
+            } elsif ($file == 9 && $rank == 9) {
+                $turn = !$turn;
+                tostate('getfrom');
             } else {
-                $rank = 0;
-                $file = 0;
                 badinput();
-                outputmove(bestmove()) if $turn;
+                tostate('getfrom');
             }
-        }
-        if ($ch eq '1') {
-            badinput();
-            outputmove(bestmove()) if $turn;
-            $file = 0;
-            $rank = 0;
         }
     } elsif ($state eq 'getto') {
         $file++ if $ch eq '2';
         $rank++ if $ch eq '3';
+        if ($ch eq '1') {
+            if ($file == 0) $file = 5; # 'e'
+            elsif ($rank == 0) $rank = 5; # '5'
+        }
         if ($ch eq '4') {
             my ($fromfile, $fromrank) = split //, $from;
             $file = ord($fromfile)-ord('a')+1 if $file == 0 && $rank != 0;
@@ -102,25 +98,25 @@ while (1) {
                 } catch {
                     badinput();
                 };
-                $rank = 0;
-                $file = 0;
-                $state = 'getfrom';
-                outputmove(bestmove()) if $turn;
+                tostate('getfrom');
             } else {
-                $rank = 0;
-                $file = 0;
                 badinput();
-                outputmove(bestmove()) if $turn;
-                $state = 'getfrom';
+                tostate('getfrom');
             }
         }
-        if ($ch eq '1') {
-            $rank = 0;
-            $file = 0;
-            badinput();
-            outputmove(bestmove()) if $turn;
-            $state = 'getfrom';
-        }
+    }
+}
+
+sub tostate {
+    my ($s) = @_;
+
+    $state = $s;
+
+    $file = 0;
+    $rank = 0;
+
+    if ($state eq 'getfrom') {
+        outputmove(bestmove()) if $turn;
     }
 }
 
@@ -163,68 +159,43 @@ sub input {
 
 sub outputmove {
     my ($move) = @_;
-    my ($fromfile, $fromrank, $tofile, $torank) = split //, $move;
-    $fromfile = ord($fromfile) - ord('a') + 1;
-    $tofile = ord($tofile) - ord('a') + 1;
 
-    usleep(500_000);
+    $move =~ /^(..)(..)/ or die "bad move: [$move]??";
+    my ($from, $to) = ($1, $2);
 
-    discard_input();
+    usleep(300_000);
 
-    # TODO: refactor this into something sensible
+    my $r = outputsquare($from);
+    return if $r eq '1';
 
-    my $loop = 1;
-    my $input;
-    do {
-        for (1 .. $fromfile) {
-            if (input_ready(0)) {
-                $input = wait_input(0);
-                goto DONEFROM;
-            }
-            lvibrate(100,200);
-        }
-        usleep(200_000);
-        for (1 .. $fromrank) {
-            if (input_ready(0)) {
-                $input = wait_input(0);
-                goto DONEFROM;
-            }
-            rvibrate(100,200);
-        }
-        usleep(200_000);
+    outputsquare($to);
+}
 
-        $input = wait_input(0.5);
-        $loop = 0 if defined $input;
-    } while($loop);
-    DONEFROM:
-    return if $input eq '1';
+sub outputsquare {
+    my ($square) = @_;
+
+    my ($file,$rank) = split //, $square;
+    $file = ord($file)-ord('a')+1;
 
     usleep(200_000);
 
     discard_input();
 
-    $loop = 1;
-    do {
-        for (1 .. $tofile) {
-            if (input_ready(0)) {
-                $input = wait_input(0);
-                return;
-            }
+    while(1) {
+        for (1 .. $file) {
+            return wait_input(0) if input_ready(0);
             lvibrate(100,200);
         }
         usleep(200_000);
-        for (1 .. $torank) {
-            if (input_ready(0)) {
-                $input = wait_input(0);
-                return;
-            }
+        for (1 .. $rank) {
+            return wait_input(0) if input_ready(0);
             rvibrate(100,200);
         }
         usleep(200_000);
 
         $input = wait_input(0.5);
-        $loop = 0 if defined $input;
-    } while($loop);
+        return $input if defined $input;
+    }
 }
 
 sub badinput {
