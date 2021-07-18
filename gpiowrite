@@ -3,8 +3,8 @@
 import fileinput
 from gpiozero import LED
 
-leftpin = 18
-rightpin = 19
+leftpin = 8
+rightpin = 7
 
 left = LED(leftpin)
 right = LED(rightpin)
