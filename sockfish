@@ -25,17 +25,17 @@ my $move;
 my $turn = 1;
 
 my %keymap = (
-    14 => 1,
-    15 => 2,
+    15 => 1,
+    14 => 2,
     16 => 3,
-    17 => 4,
+    20 => 4,
+    24 => 5,
 );
 
 my $engine = Sockfish::Stockfish->new;
 
 $| = 1;
 
-# TODO: separate toggle switch to activate the system
 # TODO: move all this to python so that it is more in sync with the IO? Or at least flush all inputs in input() before waiting to accept any
 # TODO: a way to query the current state?
 # TODO: support promotion to non-queen
@@ -43,8 +43,15 @@ $| = 1;
 while (1) {
     my $ch = input();
 
+    if ($state ne 'inactive') {
+        if ($ch eq '5') {
+            badinput();
+            tostate('inactive');
+        }
+    }
+
     if ($state eq 'inactive') {
-        if ($ch eq '2') {
+        if ($ch eq '5') {
             goodinput();
             newgame();
             tostate('getfrom');
@@ -108,6 +115,8 @@ while (1) {
 sub tostate {
     my ($s) = @_;
 
+    print STDERR "TO $s\n";
+
     $state = $s;
 
     $file = 0;
@@ -163,7 +172,7 @@ sub outputmove {
     usleep(300_000);
 
     my $r = outputsquare($from);
-    return if $r eq '1';
+    return if $r eq '1' || $r eq '5';
 
     outputsquare($to);
 }
@@ -233,6 +242,7 @@ sub vibrate {
 
 sub newgame {
     $game = Chess::Rep->new;
+    $turn = 1;
     $bestmove = undef;
     @undolist = ();
 }
@@ -252,7 +262,10 @@ sub bestmove {
 
 sub compute_bestmove {
     my $fen = $game->get_fen;
-    return $engine->solve($fen);
+    print STDERR "Calculating: $fen\n";
+    my $move = $engine->solve($fen);
+    print STDERR "Calculated: $move\n";
+    return $move;
 }
 
 sub playmove {
