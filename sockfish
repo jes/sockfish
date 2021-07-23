@@ -51,7 +51,10 @@ while (1) {
 
     if ($state ne 'inactive') {
         if ($ch eq '5') {
-            badinput();
+            vibrate(500,500);
+            vibrate(500,500);
+            vibrate(500,500);
+            vibrate(500,500);
             tostate('inactive');
         }
     }
@@ -80,6 +83,10 @@ while (1) {
                 tostate('getto');
             } elsif ($file == 9 && $rank == 9) { # I9 == swap turn
                 $turn = !$turn;
+                goodinput();
+                tostate('getfrom');
+            } elsif ($file == 10 && $rank == 10) # J10 == undo
+                undo();
                 goodinput();
                 tostate('getfrom');
             } else {
