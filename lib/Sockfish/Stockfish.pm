@@ -5,7 +5,7 @@ use warnings;
 
 use IPC::Run qw(start pump finish);
 
-my @stockfish = ('stockfish');
+my @stockfish = ('/usr/games/stockfish');
 
 sub new {
     my ($pkg, %args) = @_;
