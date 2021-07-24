@@ -266,6 +266,7 @@ sub undo {
         print STDERR "UNDO\n";
         $game = Chess::Rep->new(pop @undolist);
         $turn = !$turn;
+        $bestmove = undef;
     }
 }
 
@@ -289,7 +290,7 @@ sub playmove {
 
     $game->go_move($move); # dies if move is illegal
 
-    push @undolist, $game->get_fen;
+    push @undolist, $fen;
     $turn = !$turn;
     $bestmove = undef;
 
