@@ -37,10 +37,10 @@ my $engine = Sockfish::Stockfish->new;
 $| = 1;
 
 # initialisation notification
-vibrate(500,500);
-vibrate(500,500);
-vibrate(500,500);
-vibrate(500,500);
+vibrate(300,300);
+vibrate(300,300);
+vibrate(300,300);
+vibrate(300,300);
 
 # TODO: move all this to python so that it is more in sync with the IO? Or at least flush all inputs in input() before waiting to accept any
 # TODO: a way to query the current state?
@@ -51,10 +51,10 @@ LOOP: while (1) {
 
     if ($state ne 'inactive') {
         if ($ch eq '5') {
-            vibrate(500,500);
-            vibrate(500,500);
-            vibrate(500,500);
-            vibrate(500,500);
+            vibrate(300,300);
+            vibrate(300,300);
+            vibrate(300,300);
+            vibrate(300,300);
             tostate('inactive');
             next LOOP;
         }
