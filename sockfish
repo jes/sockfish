@@ -24,6 +24,8 @@ my $move;
 
 my $turn = 1;
 
+my $vibrate_time = 0.9;
+
 my %keymap = (
     20 => 1,
     16 => 2,
@@ -80,8 +82,38 @@ LOOP: while (1) {
                 tostate('getfrom');
             } elsif ($file >= 1 && $file <= 8 && $rank >= 1 && $rank <= 8) {
                 $from = chr($file + ord('a') - 1) . $rank;
-                goodinput();
-                tostate('getto');
+                print STDERR "Input from: $from\n";
+                if (canmove($from)) {
+                    goodinput();
+                    tostate('getto');
+                } else {
+                    my $move = getmoveto($from);
+                    print STDERR "getmoveto($from) = $move\n";
+                    if ($move) {
+                        # if only one piece can move to this square, move it
+                        try {
+                            playmove($move);
+                            print STDERR "It's a good move!\n";
+                            goodinput();
+                        } catch {
+                            badinput();
+                        };
+                    } elsif (!occupied($from)) {
+                        # if this square is a legal pawn move, move the pawn
+                        try {
+                            playmove($from); # pawn move
+                            goodinput();
+                        } catch {
+                            try {
+                                playmove($from . 'q'); # pawn move with promotion
+                                goodinput();
+                            } catch {
+                                badinput();
+                            };
+                        };
+                    }
+                    tostate('getfrom');
+                }
             } elsif ($file == 9 && $rank == 9) { # I9 == swap turn
                 $turn = !$turn;
                 goodinput();
@@ -109,8 +141,8 @@ LOOP: while (1) {
             if ($file >= 1 && $file <= 8 && $rank >= 1 && $rank <= 8) {
                 my $to = chr($file + ord('a') - 1) . $rank;
                 $move = "$from$to";
-
                 $move .= 'q' if promotion($move);
+                print STDERR "Input to: $to; move=$move\n";
                 try {
                     playmove($move);
                     goodinput();
@@ -188,11 +220,17 @@ sub outputmove {
     my $r = outputsquare($from);
     return if $r eq '1' || $r eq '5';
 
-    outputsquare($to);
+    my $fromfile = substr($from,0,1);
+    my $tofile = substr($to,0,1);
+
+    usleep(300_000);
+
+    # skip first file if file is the same, to save time
+    outputsquare($to, skipfirstfile => ($fromfile eq $tofile));
 }
 
 sub outputsquare {
-    my ($square) = @_;
+    my ($square, %opts) = @_;
 
     my ($file,$rank) = split //, $square;
     $file = ord($file)-ord('a')+1;
@@ -202,11 +240,14 @@ sub outputsquare {
     discard_input();
 
     while(1) {
-        for (1 .. $file) {
-            return wait_input(0) if input_ready(0);
-            lvibrate(150,150);
+        if (!$opts{skipfirstfile}) {
+            for (1 .. $file) {
+                return wait_input(0) if input_ready(0);
+                lvibrate(150,150);
+            }
+            usleep(200_000);
+            $opts{skipfirstfile} = 0;
         }
-        usleep(200_000);
         for (1 .. $rank) {
             return wait_input(0) if input_ready(0);
             rvibrate(150,150);
@@ -231,27 +272,27 @@ sub goodinput {
 sub lvibrate {
     my ($ontime, $offtime) = @_;
     print "l on\n";
-    usleep($ontime * 1000);
+    usleep($ontime * 1000 * $vibrate_time);
     print "l off\n";
-    usleep($offtime * 1000);
+    usleep($offtime * 1000 * $vibrate_time);
 }
 
 # times in ms
 sub rvibrate {
     my ($ontime, $offtime) = @_;
     print "r on\n";
-    usleep($ontime * 1000);
+    usleep($ontime * 1000 * $vibrate_time);
     print "r off\n";
-    usleep($offtime * 1000);
+    usleep($offtime * 1000 * $vibrate_time);
 }
 
 # times in ms
 sub vibrate {
     my ($ontime, $offtime) = @_;
     print "l on\nr on\n";
-    usleep($ontime * 1000);
+    usleep($ontime * 1000 * $vibrate_time);
     print "l off\nr off\n";
-    usleep($offtime * 1000);
+    usleep($offtime * 1000 * $vibrate_time);
 }
 
 sub newgame {
@@ -306,4 +347,32 @@ sub promotion {
 
     # moving a pawn to the 1st or 8th rank is a promotion
     return ($game->get_piece_at($from) & 0x1) && ($to =~ /[18]/);
+}
+
+# can a piece on $sqr move?
+sub canmove {
+    my ($sqr) = @_;
+    my $index = Chess::Rep::get_index($sqr);
+    my @moves = grep { $_->{from} == $index } @{ $game->status->{moves} };
+    return @moves > 0;
+}
+
+# is $sqr occupied?
+sub occupied {
+    my ($sqr) = @_;
+    return !!$game->get_piece_at($sqr);
+}
+
+# return the only move that lands on $sqr, or undef if there is none or it's ambiguous
+sub getmoveto {
+    my ($sqr) = @_;
+    my $index = Chess::Rep::get_index($sqr);
+    print STDERR "Index for $sqr is $index\n";
+    my @moves = grep { $_->{to} == $index } @{ $game->status->{moves} };
+    print STDERR "There are " . (scalar @moves) . " moves to $sqr\n";
+    return undef unless @moves == 1;
+    my $m = $moves[0];
+    my $move = Chess::Rep::get_field_id($m->{from}) . Chess::Rep::get_field_id($m->{to});
+    $move .= 'q' if promotion($move);
+    return $move;
 }
