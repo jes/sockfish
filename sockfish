@@ -24,7 +24,7 @@ my $move;
 
 my $turn = 1;
 
-my $vibrate_time = 0.9;
+my $vibrate_time = 0.8;
 
 my %keymap = (
     20 => 1,
@@ -92,10 +92,12 @@ LOOP: while (1) {
                     if ($move) {
                         # if only one piece can move to this square, move it
                         try {
+                            print STDERR "Try $move...\n";
                             playmove($move);
                             print STDERR "It's a good move!\n";
                             goodinput();
                         } catch {
+                            print STDERR "It's a BAD move!\n";
                             badinput();
                         };
                     } elsif (!occupied($from)) {
@@ -240,23 +242,30 @@ sub outputsquare {
     discard_input();
 
     while(1) {
+        my $input;
         if (!$opts{skipfirstfile}) {
-            for (1 .. $file) {
-                return wait_input(0) if input_ready(0);
-                lvibrate(150,150);
-            }
-            usleep(200_000);
-            $opts{skipfirstfile} = 0;
+            $input = outputnum($file, 'l');
+            return $input if defined $input;
         }
-        for (1 .. $rank) {
-            return wait_input(0) if input_ready(0);
-            rvibrate(150,150);
-        }
-        usleep(200_000);
+        $opts{skipfirstfile} = 0;
 
-        my $input = wait_input(0.5);
+        $input = outputnum($rank, 'r');
+        return $input if defined $input;
+
+        $input = wait_input(0.5);
         return $input if defined $input;
     }
+}
+
+sub outputnum {
+    my ($n, $side) = @_;
+    my $vibrate = ($side eq 'l') ? \&lvibrate : \&rvibrate;
+    for (1 .. $n) {
+        return wait_input(0) if input_ready(0);
+        $vibrate->(150,150);
+    }
+    usleep(200_000);
+    return undef;
 }
 
 sub badinput {
@@ -374,5 +383,5 @@ sub getmoveto {
     my $m = $moves[0];
     my $move = Chess::Rep::get_field_id($m->{from}) . Chess::Rep::get_field_id($m->{to});
     $move .= 'q' if promotion($move);
-    return $move;
+    return lc $move; # needs to be lc else moves on the B file get parsed as Bishop moves...
 }

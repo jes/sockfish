@@ -24,11 +24,24 @@ sub new {
 sub solve {
     my ($self, $fen) = @_;
 
-    ${ $self->{in} } = "position fen $fen\ngo nodes 100000\n";
+    if ($self->{pondering}) {
+        # stop pondering
+        ${ $self->{in} } = "stop\n";
+        pump $self->{handle} while length ${ $self->{in} };
+        pump $self->{handle} until ${ $self->{out} } =~ /bestmove ([a-h][1-8][a-h][1-8][qrbn]?)/;
+        ${ $self->{out} } = '';
+    }
+
+    # solve the position
+    ${ $self->{in} } = "position fen $fen\ngo movetime 1500\n";
     pump $self->{handle} while length ${ $self->{in} };
     pump $self->{handle} until ${ $self->{out} } =~ /bestmove ([a-h][1-8][a-h][1-8][qrbn]?)/;
-
     ${ $self->{out} } = '';
+
+    # ponder again
+    $self->{pondering} = 1;
+    ${ $self->{in} } = "go ponder\n";
+    pump $self->{handle} while length ${ $self->{in} };
 
     return $1;
 }
