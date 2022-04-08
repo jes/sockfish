@@ -24,7 +24,7 @@ my $move;
 
 my $turn = 1;
 
-my $vibrate_time = 0.8;
+my $vibrate_time = 1.0;
 
 my %keymap = (
     20 => 1,
@@ -113,6 +113,8 @@ LOOP: while (1) {
                                 badinput();
                             };
                         };
+                    } else {
+                        badinput();
                     }
                     tostate('getfrom');
                 }
@@ -219,16 +221,18 @@ sub outputmove {
 
     usleep(300_000);
 
-    my $r = outputsquare($from);
-    return if $r eq '1' || $r eq '5';
+    # don't output the "from" square if there's only 1 possible move to the "to" square
+    if (!getmoveto($to)) {
+        my $r = outputsquare($from);
+        return if $r eq '1' || $r eq '5';
+        usleep(300_000);
+    }
 
     my $fromfile = substr($from,0,1);
     my $tofile = substr($to,0,1);
 
-    usleep(300_000);
-
-    # skip first file if file is the same, to save time
-    outputsquare($to, skipfirstfile => ($fromfile eq $tofile));
+    # skip first file if file is the same and we already output the "from" square, to save time
+    outputsquare($to, skipfirstfile => ($fromfile eq $tofile && !getmoveto($to)));
 }
 
 sub outputsquare {
