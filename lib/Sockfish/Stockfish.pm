@@ -33,7 +33,7 @@ sub solve {
     }
 
     # solve the position
-    ${ $self->{in} } = "position fen $fen\ngo movetime 1500\n";
+    ${ $self->{in} } = "position fen $fen\ngo movetime 1000\n";
     pump $self->{handle} while length ${ $self->{in} };
     pump $self->{handle} until ${ $self->{out} } =~ /bestmove ([a-h][1-8][a-h][1-8][qrbn]?)/;
     ${ $self->{out} } = '';
