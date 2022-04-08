@@ -264,6 +264,10 @@ sub outputsquare {
 sub outputnum {
     my ($n, $side) = @_;
     my $vibrate = ($side eq 'l') ? \&lvibrate : \&rvibrate;
+    if ($n >= 5) {
+        $vibrate->(500,150);
+        $n -= 5;
+    }
     for (1 .. $n) {
         return wait_input(0) if input_ready(0);
         $vibrate->(150,150);
