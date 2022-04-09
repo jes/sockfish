@@ -76,7 +76,7 @@ LOOP: while (1) {
             elsif ($rank == 0) { $rank = 5; } # '5'
         }
         if ($ch eq '4') {
-            if ($file == 0 && $rank == 0 && $turn) {
+            if ($file == 0 && $rank == 0 && ($turn || onlymove())) {
                 playmove(bestmove());
                 goodinput();
                 tostate('getfrom');
@@ -392,4 +392,8 @@ sub getmoveto {
     my $move = Chess::Rep::get_field_id($m->{from}) . Chess::Rep::get_field_id($m->{to});
     $move .= 'q' if promotion($move);
     return lc $move; # needs to be lc else moves on the B file get parsed as Bishop moves...
+}
+
+sub onlymove {
+    return @{ $game->{status}->{moves} } == 1;
 }
