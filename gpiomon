@@ -1,17 +1,12 @@
 #!/usr/bin/python3 -u
 
-# https://roboticsbackend.com/raspberry-pi-gpio-interrupts-tutorial/
-
-import signal
+import time
+import board
+import busio
 import sys
+import adafruit_ads1x15.ads1115 as ADS
+from adafruit_ads1x15.analog_in import AnalogIn
 from gpiozero import Button
-
-if len(sys.argv) < 2:
-    print("Usage: gpiomon PIN...\nWhere PIN is a BCM pin number.")
-    sys.exit()
-
-def button_pressed_callback(channel):
-    print("")
 
 buttons = []
 
@@ -20,4 +15,26 @@ for n in sys.argv[1:]:
     b.when_pressed = lambda n=n: print(n)
     buttons.append(b)
 
-signal.pause()
+# Create the I2C bus
+i2c = busio.I2C(board.SCL, board.SDA)
+
+# Create the ADC object using the I2C bus
+ads = ADS.ADS1115(i2c)
+
+# Create single-ended input on channel 0
+chan = [AnalogIn(ads, ADS.P0), AnalogIn(ads, ADS.P1), AnalogIn(ads, ADS.P2), AnalogIn(ads, ADS.P3)]
+
+# Create differential input between channel 0 and 1
+#chan = AnalogIn(ads, ADS.P0, ADS.P1)
+
+thresh = [3.9, 3.9, 3.9, 3.9]
+on = [False, False, False, False]
+
+while True:
+    for i in range(2):
+        if chan[i].voltage < thresh[i]:
+            if not on[i]:
+                print("A" + str(i))
+            on[i] = True
+        else:
+            on[i] = False
