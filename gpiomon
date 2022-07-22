@@ -24,14 +24,11 @@ ads = ADS.ADS1115(i2c)
 # Create single-ended input on channel 0
 chan = [AnalogIn(ads, ADS.P0), AnalogIn(ads, ADS.P1), AnalogIn(ads, ADS.P2), AnalogIn(ads, ADS.P3)]
 
-# Create differential input between channel 0 and 1
-#chan = AnalogIn(ads, ADS.P0, ADS.P1)
-
-thresh = [3.9, 3.9, 3.9, 3.9]
+thresh = [3.0, 3.2, 3.0, 2.4]
 on = [False, False, False, False]
 
 while True:
-    for i in range(2):
+    for i in range(4):
         if chan[i].voltage < thresh[i]:
             if not on[i]:
                 print("A" + str(i))
