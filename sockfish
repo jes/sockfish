@@ -226,6 +226,7 @@ sub outputmove {
     # don't output the "from" square if there's only 1 possible move to the "to" square
     if (!getmoveto($to)) {
         my $r = outputsquare($from);
+        shortgoodinput();
         return if $r eq '1' || $r eq '5';
         usleep(300_000);
     }
@@ -235,6 +236,7 @@ sub outputmove {
 
     # skip first file if file is the same and we already output the "from" square, to save time
     outputsquare($to, skipfirstfile => ($fromfile eq $tofile && !getmoveto($to)));
+    shortgoodinput();
 }
 
 sub outputsquare {
@@ -285,6 +287,10 @@ sub badinput {
 
 sub goodinput {
     vibrate(200, 200);
+}
+
+sub shortgoodinput {
+    vibrate(150, 100);
 }
 
 # times in ms
