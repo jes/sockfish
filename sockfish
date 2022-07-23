@@ -24,7 +24,7 @@ my $move;
 
 my $turn = 1;
 
-my $vibrate_time = 1.0;
+my $vibrate_time = 0.6;
 
 my %keymap = (
     A0 => 1,
