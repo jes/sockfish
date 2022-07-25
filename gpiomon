@@ -24,7 +24,7 @@ ads = ADS.ADS1115(i2c)
 # Create single-ended input on channel 0
 chan = [AnalogIn(ads, ADS.P0), AnalogIn(ads, ADS.P1), AnalogIn(ads, ADS.P2), AnalogIn(ads, ADS.P3)]
 
-thresh = [3.0, 3.2, 3.0, 2.4]
+thresh = [3.5, 3.5, 2.9, 2.4]
 on = [False, False, False, False]
 
 while True:
