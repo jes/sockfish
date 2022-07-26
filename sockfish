@@ -67,7 +67,7 @@ LOOP: while (1) {
             goodinput();
             newgame();
             my $input = wait_input(1.0);
-            $turn = !$turn if $input eq '5'; # 2 presses = black
+            $turn = !$turn if $input && $input eq '5'; # 2 presses = black
             tostate('getfrom');
         }
     } elsif ($state eq 'getfrom') {
